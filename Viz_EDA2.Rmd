@@ -1,0 +1,212 @@
+---
+title: "Viz_EDA 2"
+author: "Zining Qi"
+date: "2022-10-04"
+output: github_document
+---
+
+```{r}
+library(tidyverse)
+library(ggridges)
+library(patchwork)
+```
+
+```{r}
+weather_df = 
+  rnoaa::meteo_pull_monitors(
+    c("USW00094728", "USC00519397", "USS0023B17S"),
+    var = c("PRCP", "TMIN", "TMAX"), 
+    date_min = "2017-01-01",
+    date_max = "2017-12-31") %>%
+  mutate(
+    name = recode(
+      id, 
+      USW00094728 = "CentralPark_NY", 
+      USC00519397 = "Waikiki_HA",
+      USS0023B17S = "Waterhole_WA"),
+    tmin = tmin / 10,
+    tmax = tmax / 10) %>%
+  select(name, id, everything())
+```
+
+## Scatterplot
+```{r}
+# Better this time
+weather_df %>%
+  ggplot(aes(x = tmin, y = tmax,, color = name)) +
+  geom_point(alpha = .5) +
+  labs(
+    x = "Minnimum Daily Temp",
+    y = "Maximum Daily Temp",
+    title = "scatterplot of daily temp",
+    caption = "Data come from rnoaa package"
+  )
+```
+
+```{r}
+weather_df %>%
+  ggplot(aes(x = tmin, y = tmax,, color = name)) +
+  geom_point(alpha = .5) +
+  labs(
+    x = "Minnimum Daily Temp",
+    y = "Maximum Daily Temp",
+    title = "scatterplot of daily temp",
+    caption = "Data come from rnoaa package"
+  ) +
+  scale_x_continuous(
+    breaks = c(-15, 0, 15), 
+    labels = c("-15º C", "0", "15")
+  )
+```
+
+```{r}
+weather_df %>%
+  ggplot(aes(x = tmin, y = tmax,, color = name)) +
+  geom_point(alpha = .5) +
+  labs(
+    x = "Minnimum Daily Temp",
+    y = "Maximum Daily Temp",
+    title = "scatterplot of daily temp",
+    caption = "Data come from rnoaa package"
+  ) +
+  scale_x_continuous(
+    breaks = c(-15, 0, 15), 
+    labels = c("-15º C", "0", "15")
+  ) +
+  scale_y_continuous(
+    trans = "sqrt", 
+    position = "right"
+  )
+```
+
+```{r}
+weather_df %>%
+  ggplot(aes(x = tmin, y = tmax,, color = name)) +
+  geom_point(alpha = .5) +
+  labs(
+    x = "Minnimum Daily Temp",
+    y = "Maximum Daily Temp",
+    title = "scatterplot of daily temp",
+    caption = "Data come from rnoaa package"
+  ) +
+  scale_color_hue(
+    name = "Location", 
+    h = c(100, 300)
+  )
+```
+
+```{r}
+ggp_temp_plot = weather_df %>%
+  ggplot(aes(x = tmin, y = tmax,, color = name)) +
+  geom_point(alpha = .5) +
+  labs(
+    x = "Minnimum Daily Temp",
+    y = "Maximum Daily Temp",
+    title = "scatterplot of daily temp",
+    caption = "Data come from rnoaa package"
+  ) +
+  viridis::scale_color_viridis(
+    name = "Location", 
+    discrete = TRUE
+  )
+ggp_temp_plot
+```
+
+## Theme
+```{r}
+ggp_temp_plot + 
+  theme(legend.position = "bottom")
+```
+
+```{r}
+ggp_temp_plot + 
+  theme_minimal()
+```
+
+
+## Data in Geom_
+```{r}
+central_park = 
+  weather_df %>% 
+  filter(name == "CentralPark_NY")
+
+waikiki_park = 
+  weather_df %>% 
+  filter(name == "Waikiki_HA")
+
+ggplot(data = waikiki_park, aes(x = date, y = tmax, color = name)) + 
+  geom_point() + 
+  geom_line(data = central_park)
+```
+
+## Patchwork
+```{r}
+tmax_tmin_plot = 
+  weather_df %>%
+  ggplot(aes(x = tmin, y = tmin, color = name)) +
+  geom_point()
+
+prcp_dens_plot =
+  weather_df %>%
+  filter(prcp > 0) %>% 
+  ggplot(aes(x = prcp, fill = name)) + 
+  geom_density(alpha = .5) + 
+  theme(legend.position = "none")
+
+tmax_date_plot = 
+  weather_df %>% 
+  ggplot(aes(x = date, y = tmax, color = name)) + 
+  geom_point(alpha = .5) +
+  geom_smooth(se = FALSE) + 
+  theme(legend.position = "bottom")
+
+(tmax_tmin_plot + prcp_dens_plot) / tmax_date_plot
+```
+
+
+## Data Manipulation
+```{r}
+weather_df %>%
+  mutate(name = fct_reorder(name, tmax)) %>%
+  ggplot(aes(x = name, y = tmax)) +
+  geom_boxplot()
+```
+
+
+
+```{r}
+pulse_data = 
+  haven::read_sas("/Users/qizining/Desktop/Data-Wrangling/public_pulse_data.sas7bdat") %>%
+  janitor::clean_names() %>%
+  pivot_longer(
+    bdi_score_bl:bdi_score_12m,
+    names_to = "visit", 
+    names_prefix = "bdi_score_",
+    values_to = "bdi"
+  ) %>%
+  select(id, visit, everything()) %>%
+  mutate(
+    visit = recode(visit, "bl" = "00m"),
+    visit = factor(visit, levels = str_c(c("00", "01", "06", "12"), "m"))) %>%
+  arrange(id, visit)
+
+ggplot(pulse_data, aes(x = visit, y = bdi)) + 
+  geom_boxplot()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
